@@ -1,0 +1,989 @@
+package Character
+
+import TerrainType
+import KeyboardEvent
+import EffectEx
+import Sync
+import Mover
+import MathEx
+import TimerEx
+import Scoreboard
+
+Character localCharacter=null
+public bool replayMode
+public bool aceMode=true
+public int currentObserve=0
+
+dialog menuDialog=DialogCreate()
+dialog keySettingDialog=DialogCreate()
+dialog cameraSettingDialog=DialogCreate()
+
+public bool showDelay=false
+
+function keyChannelSettingFunc() returns bool
+    if(getKeyType()!=KEY_TYPE_DOWN)
+        return false
+    getCurrentTrigger().destr()
+    localCharacter.keyChannelCode=getKeyCode()
+    DialogDisplay(localPlayer, keySettingDialog, false)
+    return false
+
+function keyDownSettingFunc() returns bool
+    if(getKeyType()!=KEY_TYPE_DOWN)
+        return false
+    getCurrentTrigger().destr()
+    localCharacter.keyDownCode=getKeyCode()
+    DialogDisplay(localPlayer, keySettingDialog, false)
+    CreateTrigger()
+    ..registerKeyboardEvent()
+    ..addCondition(Condition(function keyChannelSettingFunc))
+    DialogSetMessage(keySettingDialog, "输入按键「特殊」")
+    DialogDisplay(localPlayer, keySettingDialog, true)
+    return false
+
+function keyRightSettingFunc() returns bool
+    if(getKeyType()!=KEY_TYPE_DOWN)
+        return false
+    getCurrentTrigger().destr()
+    localCharacter.keyRightCode=getKeyCode()
+    DialogDisplay(localPlayer, keySettingDialog, false)
+    CreateTrigger()
+    ..registerKeyboardEvent()
+    ..addCondition(Condition(function keyDownSettingFunc))
+    DialogSetMessage(keySettingDialog, "输入按键「↓快速下降」")
+    DialogDisplay(localPlayer, keySettingDialog, true)
+    return false
+
+function keyUpSettingFunc() returns bool
+    if(getKeyType()!=KEY_TYPE_DOWN)
+        return false
+    getCurrentTrigger().destr()
+    localCharacter.keyUpCode=getKeyCode()
+    DialogDisplay(localPlayer, keySettingDialog, false)
+    CreateTrigger()
+    ..registerKeyboardEvent()
+    ..addCondition(Condition(function keyRightSettingFunc))
+    DialogSetMessage(keySettingDialog, "输入按键「→移动」")
+    DialogDisplay(localPlayer, keySettingDialog, true)
+    return false
+
+function keyLeftSettingFunc() returns bool
+    if(getKeyType()!=KEY_TYPE_DOWN)
+        return false
+    getCurrentTrigger().destr()
+    localCharacter.keyLeftCode=getKeyCode()
+    DialogDisplay(localPlayer, keySettingDialog, false)
+    CreateTrigger()
+    ..registerKeyboardEvent()
+    ..addCondition(Condition(function keyUpSettingFunc))
+    DialogSetMessage(keySettingDialog, "输入按键「↑跳跃」")
+    DialogDisplay(localPlayer, keySettingDialog, true)
+    return false
+
+trigger menuShowCommandTrigger=CreateTrigger()
+..registerDialogButtonEvent(DialogAddButton(menuDialog, "查看命令", 0))
+..addCondition(Condition(()->begin
+    DisplayTimedTextToPlayer(GetTriggerPlayer(), 0.0, 0.0, 60.0, "使用-msd [time]设置最小同步周期(秒)，默认0.2，如果延时不稳定，可以稍微增大最小同步周期，比如-msd 0.4")
+    DisplayTimedTextToPlayer(GetTriggerPlayer(), 0.0, 0.0, 60.0, "使用-cls来清空屏幕消息")
+end))
+
+trigger menuCameraSetting=CreateTrigger()
+..registerDialogButtonEvent(DialogAddButton(menuDialog, "调整镜头高度", 0))
+..addCondition(Condition(()->begin
+    DialogSetMessage(cameraSettingDialog, "当前镜头高度："+GetCameraField(CAMERA_FIELD_TARGET_DISTANCE).toString())
+    DialogDisplay(GetTriggerPlayer(), cameraSettingDialog, true)
+end))
+
+trigger menuKeySettingTrigger=CreateTrigger()
+..registerDialogButtonEvent(DialogAddButton(menuDialog, "键位设置", 0))
+..addCondition(Condition(()->begin
+    if(localPlayer==GetTriggerPlayer())
+        CreateTrigger()
+        ..registerKeyboardEvent()
+        ..addCondition(Condition(function keyLeftSettingFunc))
+        DialogSetMessage(keySettingDialog, "输入按键「←移动」")
+        DialogDisplay(localPlayer, keySettingDialog, true)
+end))
+
+public class Character
+    //objects
+    unit object
+    real x
+    real y
+    int unitType
+    real xSpeed
+    real ySpeed
+    real xSpeedExtra
+    real ySpeedExtra
+    real moveSpeed
+    real jumpSpeed
+    real dropSpeed
+    int boostLevel
+    real gravity
+    int owner
+    int extraJumpRemain
+    int extraJump
+    real reviveX
+    real reviveY
+    bool isAlive
+    bool isLanding
+    private real gravitySign
+    bool enableGravitySwitch
+    bool enableJumper
+    real collusionSize
+
+    //keyboard
+    int keyUpCode
+    int keyDownCode
+    int keyLeftCode
+    int keyRightCode
+    int keyChannelCode
+    private int id
+    private bool isLeftMoving
+    private bool isKeyLeftDown
+    private bool isRightMoving
+    private bool isKeyRightDown
+    private bool isKeyUpDown
+    bool isKeyReverse
+
+    //sync
+    Mover mover
+    bool isLocalPlayer
+    real heartbeatCheck
+    real minSyncPeriod
+    bool enableSyncSave
+    real arrivedTime=0.0
+    real syncTime
+    TimerEx syncLimitTimer=null
+    SyncRealDummy syncAllDummy
+    SyncEventDummy syncKillDummy
+    SyncEventDummy syncReviveDummy
+    SyncIntDummy syncSaveDummy
+    SyncRealDummy syncLandJumpDummy
+    real waitForSyncLandJumpX
+    real waitForSyncLandJumpY
+    bool waitForSyncLandJump=false
+    real syncLandJumpX
+    real syncLandJumpY
+    bool syncLandJump=false
+    SyncRealDummy syncWallJumpDummy
+    real waitForSyncWallJumpX
+    real waitForSyncWallJumpY
+    bool waitForSyncWallJump=false
+    real syncWallJumpX
+    real syncWallJumpY
+    bool syncWallJump=false
+    SyncRealDummy syncAirJumpDummy
+    real waitForSyncAirJumpX
+    real waitForSyncAirJumpY
+    bool waitForSyncAirJump=false
+    real syncAirJumpX
+    real syncAirJumpY
+    bool syncAirJump=false
+    SyncIntDummy syncBoostDummy
+    int waitForSyncBoostX
+    int waitForSyncBoostY
+    bool waitForSyncBoost=false
+    int syncBoostX
+    int syncBoostY
+    bool syncBoost=false
+    SyncRealDummy syncSuperBoostDummy
+    real waitForSyncSuperBoostX
+    real waitForSyncSuperBoostY
+    bool waitForSyncSuperBoost=false
+    real syncSuperBoostX
+    real syncSuperBoostY
+    bool syncSuperBoost=false
+    SyncRealDummy syncJumperDummy
+    real waitForSyncJumperX
+    real waitForSyncJumperY
+    bool waitForSyncJumper=false
+    real syncJumperX
+    real syncJumperY
+    bool syncJumper=false
+
+    //test
+    bool isInvulnerable
+
+    //static
+    static int alivePlayerCount=0
+    private static Character array characters
+    private static int top=-1
+    private static real timeout=0.001
+    private static timer globalTimer=CreateTimer()..startPeriodic(timeout, function charactersMove)
+    private static real globalGravity=1250.0
+
+    private static Character array playerCharacters
+    private static int array playerRealIndex=[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1]
+    private static int array playerWarcraftIndex=[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1]
+    static int playerTop=-1
+    private static trigger localTrigger=CreateTrigger()
+    ..registerKeyboardEvent()
+    ..addCondition(Condition(function keyboardFunc))
+
+    private static function keyboardFunc() returns boolean
+        int owner=GetLocalPlayer().getId()
+        if(playerRealIndex[owner]==-1)
+            return false
+        Character character=playerCharacters[playerRealIndex[owner]]
+        int screenKeyLeftCode
+        int screenKeyRightCode
+        if(character.isKeyReverse)
+            screenKeyLeftCode=character.keyRightCode
+            screenKeyRightCode=character.keyLeftCode
+        else
+            screenKeyLeftCode=character.keyLeftCode
+            screenKeyRightCode=character.keyRightCode
+        if(getKeyType()==KEY_TYPE_DOWN)
+            switch getKeyCode()
+                case screenKeyLeftCode
+                    character.isKeyLeftDown=true
+                    if(not character.isKeyRightDown)
+                        character.isLeftMoving=true
+                        character.isRightMoving=false
+                case character.keyUpCode
+                    character.isKeyUpDown=true
+                    character.jump()
+                case screenKeyRightCode
+                    character.isKeyRightDown=true
+                    if(not character.isKeyLeftDown)
+                        character.isRightMoving=true
+                        character.isLeftMoving=false
+                case character.keyDownCode
+                    character.dropSpeed=1000.0
+                case 512
+                    DialogSetMessage(menuDialog, "菜单")
+                    DialogDisplay(GetLocalPlayer(), menuDialog, true)
+        else if(getKeyType()==KEY_TYPE_UP)
+            switch getKeyCode()
+                case screenKeyLeftCode
+                    character.isKeyLeftDown=false
+                    character.isLeftMoving=false
+                    if(character.isRightMoving and character.isAlive)
+                        character.boost(1)
+                    else
+                        if(character.gravitySign>0.0)
+                            character.isKeyReverse=false
+                        else
+                            character.isKeyReverse=true
+                        if(character.isKeyRightDown)
+                            character.isRightMoving=true
+                case character.keyUpCode
+                    character.isKeyUpDown=false
+                case screenKeyRightCode
+                    character.isKeyRightDown=false
+                    character.isRightMoving=false
+                    if(character.isLeftMoving and character.isAlive)
+                        character.boost(-1)
+                    else
+                        if(character.gravitySign>0.0)
+                            character.isKeyReverse=false
+                        else
+                            character.isKeyReverse=true
+                        if(character.isKeyLeftDown)
+                            character.isLeftMoving=true
+                case character.keyDownCode
+                    character.dropSpeed=500.0
+        return false
+
+    private static function charactersMove()
+        Character character
+        for i=0 to top
+            character=characters[i]
+            character.syncTime+=timeout
+            if(character.isLocalPlayer)
+                if(character.heartbeatCheck>2.0)
+                    character.syncAllDummy.sync(character.x, character.y)
+                    character.heartbeatCheck=0.0
+                    ClearSelection()
+                    SelectUnit(character.object, true)
+                else
+                    character.heartbeatCheck+=timeout
+                if(character.isAlive)
+                    if(character.ySpeed<-character.dropSpeed)
+                        character.ySpeed+=character.gravity*timeout
+                    else
+                        character.ySpeed-=character.gravity*timeout
+                    if(character.isLeftMoving)
+                        character.xSpeed=-character.moveSpeed
+                    else if(character.isRightMoving)
+                        character.xSpeed=character.moveSpeed
+                    else
+                        character.xSpeed=0.0
+                    character.moveX()
+                    character.moveY()
+
+    static function getPlayerCharacter(int playerId) returns Character
+        return playerCharacters[playerRealIndex[playerId]]
+
+    static function getPlayerCharacterByRealIndex(int realIndex) returns Character
+        return playerCharacters[realIndex]
+
+    static function getPlayerRealIndex(int playerId) returns int
+        return playerRealIndex[playerId]
+
+    static function getPlayerWarcraftIndex(int realIndex) returns int
+        return playerWarcraftIndex[realIndex]
+
+    private function syncAllFunc(real newX, real newY)
+        if(not isLocalPlayer)
+            x=GetUnitX(object)
+            y=GetUnitY(object)
+            if(mover!=null)
+                destroy mover
+            if(arrivedTime>0.0)
+                mover=new Mover(object, newX, newY, arrivedTime)
+                mover.onMoveEnd=()->
+                    mover=null
+            arrivedTime=syncTime
+            if(syncLandJump)
+                addEffect(EFFECT_LANDJUMP, vec2(syncLandJumpX, syncLandJumpY))
+                syncLandJump=false
+            if(waitForSyncLandJump)
+                syncLandJump=true
+                syncLandJumpX=waitForSyncLandJumpX
+                syncLandJumpY=waitForSyncLandJumpY
+                waitForSyncLandJump=false
+            if(syncJumper)
+                addEffect(EFFECT_JUMPER, vec2(syncJumperX, syncJumperY))
+                syncJumper=false
+            if(waitForSyncJumper)
+                syncJumper=true
+                syncJumperX=waitForSyncJumperX
+                syncJumperY=waitForSyncJumperY
+                waitForSyncJumper=false
+            if(syncBoost)
+                texttag screenText
+                if(syncBoostX>2)
+                    if(replayMode)
+                        screenText=createTTEx(vec3(x, y, 16.0), COLOR_PLAYER[owner]+"Super Booster!!|r "+(syncBoostX).toString(), 9.0)
+                        ..setVelocity(-0.1, 0.1)
+                    else
+                        screenText=createTTEx(vec3(x, y, 16.0), COLOR_PLAYER[owner]+"Super Booster!!|r "+(syncBoostX).toString(), 7.0)
+                        ..setVelocity(-0.1*localCharacter.gravitySign, 0.1)
+                else if(syncBoostX<-2)
+                    if(replayMode)
+                        screenText=createTTEx(vec3(x, y, 16.0), COLOR_PLAYER[owner]+"Super Booster!!|r "+(-syncBoostX).toString(), 9.0)
+                        ..setVelocity(0.1, 0.1)
+                    else
+                        screenText=createTTEx(vec3(x, y, 16.0), COLOR_PLAYER[owner]+"Super Booster!!|r "+(-syncBoostX).toString(), 7.0)
+                        ..setVelocity(0.1*localCharacter.gravitySign, 0.1)
+                else if(syncBoostX>0)
+                    if(replayMode)
+                        screenText=createTTEx(vec3(x, y, 16.0), COLOR_PLAYER[owner]+"Booster!!|r "+(syncBoostX).toString(), 9.0)
+                        ..setVelocity(-0.1, 0.1)
+                    else
+                        screenText=createTTEx(vec3(x, y, 16.0), COLOR_PLAYER[owner]+"Booster!!|r "+(syncBoostX).toString(), 7.0)
+                        ..setVelocity(-0.1*localCharacter.gravitySign, 0.1)
+                else
+                    if(replayMode)
+                        screenText=createTTEx(vec3(x, y, 16.0), COLOR_PLAYER[owner]+"Booster!!|r "+(-syncBoostX).toString(), 9.0)
+                        ..setVelocity(0.1, 0.1)
+                    else
+                        screenText=createTTEx(vec3(x, y, 16.0), COLOR_PLAYER[owner]+"Booster!!|r "+(-syncBoostX).toString(), 7.0)
+                        ..setVelocity(0.1*localCharacter.gravitySign, 0.1)
+                screenText
+                ..setPermanent(false)
+                ..setLifespan(1.0)
+                ..setFadepoint(0.8)
+                syncBoost=false
+            if(waitForSyncBoost)
+                syncBoost=true
+                syncBoostX=waitForSyncBoostX
+                syncBoostY=waitForSyncBoostY
+                waitForSyncBoost=false
+            if(syncSuperBoost)
+                addEffect(EFFECT_SUPERBOOST, vec2(syncSuperBoostX, syncSuperBoostY))
+                syncSuperBoost=false
+            if(waitForSyncSuperBoost)
+                syncSuperBoost=true
+                syncSuperBoostX=waitForSyncSuperBoostX
+                syncSuperBoostY=waitForSyncSuperBoostY
+                waitForSyncSuperBoost=false
+            if(syncAirJump)
+                addEffect(EFFECT_AIRJUMP, vec2(syncAirJumpX, syncAirJumpY))
+                syncAirJump=false
+            if(waitForSyncAirJump)
+                syncAirJump=true
+                syncAirJumpX=waitForSyncAirJumpX
+                syncAirJumpY=waitForSyncAirJumpY
+                waitForSyncAirJump=false
+            if(syncWallJump)
+                addEffect(EFFECT_WALLJUMP, vec2(syncWallJumpX, syncWallJumpY))
+                syncWallJump=false
+            if(waitForSyncWallJump)
+                syncWallJump=true
+                syncWallJumpX=waitForSyncWallJumpX
+                syncWallJumpY=waitForSyncWallJumpY
+                waitForSyncWallJump=false
+        else
+            if(showDelay)
+                DisplayTimedTextToPlayer(localPlayer, 0.0, 0.0, 60.0, syncTime.toString())
+            syncAllDummy.sync(x, y)
+            heartbeatCheck=0.0
+            ClearSelection()
+            SelectUnit(object, true)
+        syncTime=0.0
+
+    construct(int owner,int unitType,real x,real y,boolean useCharacterMover)
+        this.unitType=unitType
+        this.owner=owner
+        object=CreateUnit(playerFromIndex(owner), unitType, x, y, 0.0)..setUserData(this castTo int)
+        mover=null
+        syncTime=0.0
+        extraJumpRemain=0
+        heartbeatCheck=0.0
+        minSyncPeriod=0.2
+        keyLeftCode=516
+        keyUpCode=517
+        keyRightCode=518
+        keyDownCode=519
+        keyChannelCode=70
+        enableSyncSave=true
+        collusionSize=24.0
+        isInvulnerable=false
+
+        syncAllDummy=new SyncRealDummy(owner)(newX, newY)->
+            if(syncTime>=minSyncPeriod)
+                scoreboard.getItem(playerRealIndex[owner]+1, 3).setValue(syncTime.toString())
+                syncAllFunc(newX, newY)
+            else
+                if(syncLimitTimer!=null)
+                    destroy syncLimitTimer
+                syncLimitTimer=new TimerEx(minSyncPeriod-syncTime, false)->
+                    scoreboard.getItem(playerRealIndex[owner]+1, 3).setValue(syncTime.toString())
+                    syncAllFunc(newX, newY)
+                    syncLimitTimer=null
+
+        syncKillDummy=new SyncEventDummy(owner)->
+            boardDeathCount[playerRealIndex[owner]]++
+            scoreboard.getItem(playerRealIndex[owner]+1, 2).setValue(boardDeathCount[playerRealIndex[owner]].toString())
+            alivePlayerCount--
+            print(COLOR_PLAYER[owner]+playerFromIndex(owner).getName()+"|r死掉了~")
+            if(aceMode and alivePlayerCount==0)
+                if(playerTop>0)
+                    print("你们被团灭了~")
+                new TimerEx(2.0, false)->
+                    ClearTextMessages()
+                    forAllPlayers()(character)->
+                        character.revive()
+            if(not isLocalPlayer)
+                object.setAnimation("death")
+                addEffect(EFFECT_DEATHCLAP, vec2(object.getX(), object.getY())).destr()
+
+        syncReviveDummy=new SyncEventDummy(owner)->
+            alivePlayerCount++
+            if(not isLocalPlayer)
+                object.setAnimation("stand")
+                object..setX(reviveX)..setY(reviveY)
+                addEffect(EFFECT_RESURRECT, vec2(reviveX, reviveY)).destr()
+
+        syncAirJumpDummy=new SyncRealDummy(owner)(newX, newY)->
+            if(not isLocalPlayer)
+                waitForSyncAirJump=true
+                waitForSyncAirJumpX=newX
+                waitForSyncAirJumpY=newY
+
+        syncLandJumpDummy=new SyncRealDummy(owner)(newX, newY)->
+            if(not isLocalPlayer)
+                waitForSyncLandJump=true
+                waitForSyncLandJumpX=newX
+                waitForSyncLandJumpY=newY
+
+        syncWallJumpDummy=new SyncRealDummy(owner)(newX, newY)->
+            if(not isLocalPlayer)
+                waitForSyncWallJump=true
+                waitForSyncWallJumpX=newX
+                waitForSyncWallJumpY=newY
+
+        syncBoostDummy=new SyncIntDummy(owner)(newX, newY)->
+            if(not isLocalPlayer)
+                waitForSyncBoost=true
+                waitForSyncBoostX=newX
+                waitForSyncBoostY=newY
+
+        syncSuperBoostDummy=new SyncRealDummy(owner)(newX, newY)->
+            if(not isLocalPlayer)
+                waitForSyncSuperBoost=true
+                waitForSyncSuperBoostX=newX
+                waitForSyncSuperBoostY=newY
+        
+        syncSaveDummy=new SyncIntDummy(owner)(index,checkIdEx)->
+            if(isLocalPlayer)
+                enableSyncSave=true
+            int checkId=checkIdEx+saveRectFirst
+            if(index<=saveRectTop)
+                if(saveRects[index].getHandleId()==checkId)
+                    for i=0 to top
+                        characters[i].setRevivePoint(saveRects[index].getCenter())
+                    boardGoalCount[playerRealIndex[owner]]++
+                    scoreboard.getItem(playerRealIndex[owner]+1, 1).setValue(boardGoalCount[playerRealIndex[owner]].toString())
+                    saveRects[index]=saveRects[saveRectTop]
+                    saveRectTop--
+                    print(COLOR_PLAYER[owner]+playerFromIndex(owner).getName()+"|r为你们通关了~")
+
+        syncJumperDummy=new SyncRealDummy(owner)(newX, newY)->
+            if(not isLocalPlayer)
+                waitForSyncJumper=true
+                waitForSyncJumperX=newX
+                waitForSyncJumperY=newY
+
+        isKeyLeftDown=false
+        isKeyRightDown=false
+        isKeyUpDown=false
+        playerTop++
+        playerCharacters[playerTop]=this
+        playerRealIndex[owner]=playerTop
+        playerWarcraftIndex[playerTop]=owner
+        isLocalPlayer=useCharacterMover
+
+        this.x=x
+        this.y=y
+        reviveX=x
+        reviveY=y
+        isAlive=true
+        initStates()
+
+        syncAllDummy.sync(this.x, this.y)
+        ClearSelection()
+        SelectUnit(object, true)
+
+        alivePlayerCount++
+        top++
+        characters[top]=this
+        id=top
+        if(useCharacterMover)
+            localCharacter=this
+
+    ondestroy
+        object.remove()
+        destroy syncKillDummy
+        destroy syncReviveDummy
+        destroy syncAirJumpDummy
+        destroy syncLandJumpDummy
+        destroy syncAllDummy
+        destroy syncWallJumpDummy
+        destroy syncSuperBoostDummy
+        if(id!=-1)
+            characters[id]=characters[top]
+            top--
+
+    function initStates()
+        xSpeed=0.0
+        ySpeed=0.0
+        xSpeedExtra=0.0
+        ySpeedExtra=0.0
+        moveSpeed=500.0
+        jumpSpeed=750.0
+        dropSpeed=500.0
+        boostLevel=0
+        gravity=globalGravity
+        gravityReset()
+        enableGravitySwitch=true
+        enableJumper=true
+        extraJump=extraJumpRemain
+        if(not isAlive)
+            revive()
+        isLanding=false
+        isLeftMoving=false
+        isRightMoving=false
+        isKeyReverse=false
+        if(isLocalPlayer)
+            SetCameraTargetController(object, 0.0, 0.0, false)
+
+    function setX(real newX)
+        x=newX
+        object.setX(x)
+
+    function setY(real newY)
+        y=newY
+        object.setY(y)
+
+    function getBottom() returns real
+        return y-collusionSize
+
+    function getLeft() returns real
+        return x-collusionSize
+
+    function getTop() returns real
+        return y+collusionSize
+
+    function getRight() returns real
+        return x+collusionSize
+
+    function gravityReverse()
+        if(gravitySign>0.0)
+            gravitySign=-1.0
+            if(isLocalPlayer)
+                SetCameraField(CAMERA_FIELD_ROTATION, 270.0, 0.05)
+            if(not isKeyLeftDown and not isKeyRightDown)
+                isKeyReverse=true
+        else
+            gravitySign=1.0
+            if(isLocalPlayer)
+                SetCameraField(CAMERA_FIELD_ROTATION, 90.0, 0.05)
+            if(not isKeyLeftDown and not isKeyRightDown)
+                isKeyReverse=false
+
+    function gravityReset()
+        gravitySign=1.0
+        if(isLocalPlayer)
+            SetCameraField(CAMERA_FIELD_ROTATION, 90.0, 0.0)
+        isKeyReverse=false
+
+    function moveX()
+        real xSpeedReal=xSpeed+xSpeedExtra
+        if(xSpeedReal==0.0)
+            return
+        if(xSpeedReal>0.0)
+            if(isTerrainWall(getRight()+xSpeedReal*timeout, getTop()) or isTerrainWall(getRight()+xSpeedReal*timeout, getBottom()))
+                return
+        else
+            if(isTerrainWall(getLeft()+xSpeedReal*timeout, getTop()) or isTerrainWall(getLeft()+xSpeedReal*timeout, getBottom()))
+                return
+        setX(x+xSpeedReal*timeout)
+        if(isTerrainNothing(x, y))
+            return
+        if(isTerrainKiller(x,y))
+            kill()
+        else if(isTerrainSaver(x, y))
+            int index=getSaveRect(x, y)
+            if(index!=-1 and enableSyncSave)
+                enableSyncSave=false
+                syncSaveDummy.sync(index, saveRects[index].getHandleId()-saveRectFirst)
+                ClearSelection()
+                SelectUnit(object, true)
+        else if(isTerrainJumper(x, y))
+            if(enableJumper)
+                enableJumper=false
+                ySpeed=1650.0
+                extraJumpRemain=extraJump
+                addEffect(EFFECT_JUMPER, vec2(x, y)).destr()
+                syncJumperDummy.sync(x, y)
+                ClearSelection()
+                SelectUnit(object, true)
+        else
+            enableJumper=true
+            if(isTerrainReverseJumper(x, y))
+                if(enableGravitySwitch)
+                    enableGravitySwitch=false
+                    ySpeed=-2000.0
+                    extraJumpRemain=extraJump
+                    gravityReverse()
+                    addEffect(EFFECT_JUMPER, vec2(x, y)).destr()
+                    syncJumperDummy.sync(x, y)
+                    ClearSelection()
+                    SelectUnit(object, true)
+            else
+                enableGravitySwitch=true
+
+    function moveY()
+        real ySpeedReal=(ySpeed+ySpeedExtra)*gravitySign
+        if(ySpeedReal==0.0)
+            return
+        if(ySpeedReal>0.0)
+            if(isTerrainWall(getLeft(), getTop()+ySpeedReal*timeout) or isTerrainWall(getRight(), getTop()+ySpeedReal*timeout))
+                if(gravitySign<0.0)
+                    ySpeed=0.0
+                    isLanding=true
+                    extraJumpRemain=extraJump
+                return
+        else
+            if(isTerrainWall(getLeft(), getBottom()+ySpeedReal*timeout) or isTerrainWall(getRight(), getBottom()+ySpeedReal*timeout))
+                if(gravitySign>0.0)
+                    ySpeed=0.0
+                    isLanding=true
+                    extraJumpRemain=extraJump
+                return
+        setY(y+ySpeedReal*timeout)
+        isLanding=false
+        if(isTerrainNothing(x, y))
+            enableJumper=true
+            enableGravitySwitch=true
+            return
+        if(isTerrainKiller(x,y))
+            kill()
+        else if(isTerrainSaver(x, y))
+            int index=getSaveRect(x, y)
+            if(index!=-1 and enableSyncSave)
+                enableSyncSave=false
+                syncSaveDummy.sync(index, saveRects[index].getHandleId()-saveRectFirst)
+                ClearSelection()
+                SelectUnit(object, true)
+        else if(isTerrainJumper(x, y))
+            if(enableJumper)
+                enableJumper=false
+                ySpeed=1650.0
+                extraJumpRemain=extraJump
+                addEffect(EFFECT_JUMPER, vec2(x, y)).destr()
+                syncJumperDummy.sync(x, y)
+                ClearSelection()
+                SelectUnit(object, true)
+        else
+            enableJumper=true
+            if(isTerrainReverseJumper(x, y))
+                if(enableGravitySwitch)
+                    enableGravitySwitch=false
+                    ySpeed=-2000.0
+                    extraJumpRemain=extraJump
+                    gravityReverse()
+                    addEffect(EFFECT_JUMPER, vec2(x, y)).destr()
+                    syncJumperDummy.sync(x, y)
+                    ClearSelection()
+                    SelectUnit(object, true)
+            else
+                enableGravitySwitch=true
+
+    function jump()
+        if(isTerrainWall(getLeft()-(moveSpeed+abs(xSpeedExtra))*timeout, y))
+            ySpeed=jumpSpeed
+            xSpeedExtra+=750.0
+            addEffect(EFFECT_WALLJUMP, vec2(x, y)).destr()
+            syncWallJumpDummy.sync(x, y)
+            ClearSelection()
+            SelectUnit(object, true)
+            extraJumpRemain=extraJump
+            new TimerEx(0.1, false)->
+                xSpeedExtra-=750.0
+        else if(isTerrainWall(getRight()+(moveSpeed+abs(xSpeedExtra))*timeout, y))
+            ySpeed=jumpSpeed
+            xSpeedExtra-=750.0
+            addEffect(EFFECT_WALLJUMP, vec2(x, y)).destr()
+            syncWallJumpDummy.sync(x, y)
+            ClearSelection()
+            SelectUnit(object, true)
+            extraJumpRemain=extraJump
+            new TimerEx(0.1, false)->
+                xSpeedExtra+=750.0
+        else if(isLanding)
+            ySpeed=jumpSpeed
+            isLanding=false
+            addEffect(EFFECT_LANDJUMP, vec2(x, y)).destr()
+            syncLandJumpDummy.sync(x, y)
+            ClearSelection()
+            SelectUnit(object, true)
+        else if(extraJumpRemain>0)
+            extraJumpRemain--
+            ySpeed=jumpSpeed
+            new EffectAirJump(vec2(x, y))
+            syncAirJumpDummy.sync(x, y)
+            ClearSelection()
+            SelectUnit(object, true)
+        
+    function boost(int level)
+        boostLevel+=level
+        texttag screenText
+        real textXSpeed=0.0
+        if(boostLevel>0)
+            if(boostLevel>64)
+                boostLevel-=level
+                return
+            if(level>0)
+                if(boostLevel>2)
+                    addEffect(EFFECT_SUPERBOOST, vec2(x, y)).destr()
+                    syncSuperBoostDummy.sync(x, y)
+                    screenText=createTTEx(vec3(x, y, 16.0), COLOR_PLAYER[owner]+"Super Booster!!|r "+boostLevel.toString(), 9.0)
+                    syncBoostDummy.sync(boostLevel, 0)
+                    ClearSelection()
+                    SelectUnit(object, true)
+                    textXSpeed=-0.1
+                else
+                    screenText=createTTEx(vec3(x, y, 16.0), COLOR_PLAYER[owner]+"Booster!!|r "+boostLevel.toString(), 9.0)
+                    syncBoostDummy.sync(boostLevel, 0)
+                    ClearSelection()
+                    SelectUnit(object, true)
+                    textXSpeed=-0.1
+            else
+                screenText=createTTEx(vec3(x, y, 16.0), boostLevel.toString(), 9.0)
+                textXSpeed=-0.1
+        else if(boostLevel<0)
+            if(boostLevel<-64)
+                boostLevel-=level
+                return
+            if(level<0)
+                if(boostLevel<-2)
+                    addEffect(EFFECT_SUPERBOOST, vec2(x, y)).destr()
+                    syncSuperBoostDummy.sync(x, y)
+                    screenText=createTTEx(vec3(x, y, 16.0), COLOR_PLAYER[owner]+"Super Booster!!|r "+(-boostLevel).toString(), 9.0)
+                    syncBoostDummy.sync(boostLevel, 0)
+                    ClearSelection()
+                    SelectUnit(object, true)
+                    textXSpeed=0.1
+                else
+                    screenText=createTTEx(vec3(x, y, 16.0), COLOR_PLAYER[owner]+"Booster!!|r "+(-boostLevel).toString(), 9.0)
+                    syncBoostDummy.sync(boostLevel, 0)
+                    ClearSelection()
+                    SelectUnit(object, true)
+                    textXSpeed=0.1
+            else
+                screenText=createTTEx(vec3(x, y, 16.0), (-boostLevel).toString(), 9.0)
+                textXSpeed=0.1
+        else
+            screenText=createTTEx(vec3(x, y, 16.0), "(0)", 10.0)
+        textXSpeed*=gravitySign
+        screenText
+        ..setPermanent(false)
+        ..setVelocity(textXSpeed, 0.1)
+        ..setLifespan(1.0)
+        ..setFadepoint(0.8)
+        xSpeedExtra=boostLevel*moveSpeed
+
+    function revive()
+        if(isAlive)
+            return
+        isAlive=true
+        object.setAnimation("stand")
+        setX(reviveX)
+        setY(reviveY)
+        initStates()
+        addEffect(EFFECT_RESURRECT, vec2(x, y)).destr()
+        syncReviveDummy.sync()
+        ClearSelection()
+        SelectUnit(object, true)
+
+    function setRevivePoint(vec2 pos)
+        reviveX=pos.x
+        reviveY=pos.y
+        setX(reviveX)
+        setY(reviveY)
+        initStates()
+        addEffect(EFFECT_RESURRECT, vec2(x, y)).destr()
+
+    function kill()
+        if(not isAlive)
+            return
+        if(isInvulnerable)
+            return
+        isAlive=false
+        addEffect(EFFECT_DEATHCLAP, vec2(x, y)).destr()
+        object.setAnimation("death")
+        syncKillDummy.sync()
+        ClearSelection()
+        SelectUnit(object, true)
+        print("使用键盘←→键来切换观察玩家")
+        if(not aceMode)
+            new TimerEx(1.0, false)->
+                revive()
+
+    function observe()
+        SetCameraTargetController(object, 0.0, 0.0, false)
+
+    static function forAllPlayers(ForAllPlayerInterface callback)
+        for i=0 to playerTop
+            callback.run(playerCharacters[i])
+
+interface ForAllPlayerInterface
+    function run(Character character)
+
+init
+    DialogAddButton(menuDialog, "返回", 0)
+    DialogAddButton(cameraSettingDialog, "返回", 0)
+    
+    CreateTrigger()
+    ..registerDialogButtonEvent(DialogAddButton(cameraSettingDialog, "抬高镜头[+500]", 0))
+    ..addCondition(Condition(()->begin
+        if(localPlayer==GetTriggerPlayer())
+            SetCameraField(CAMERA_FIELD_TARGET_DISTANCE, GetCameraField(CAMERA_FIELD_TARGET_DISTANCE)+500.0, 0.0)
+            SetCameraField(CAMERA_FIELD_ANGLE_OF_ATTACK, 269.0, 0.0)
+            DialogSetMessage(cameraSettingDialog, "当前镜头高度："+GetCameraField(CAMERA_FIELD_TARGET_DISTANCE).toString())
+            DialogDisplay(localPlayer, cameraSettingDialog, true)
+    end))
+    
+    CreateTrigger()
+    ..registerDialogButtonEvent(DialogAddButton(cameraSettingDialog, "抬高镜头[+100]", 0))
+    ..addCondition(Condition(()->begin
+        if(localPlayer==GetTriggerPlayer())
+            SetCameraField(CAMERA_FIELD_TARGET_DISTANCE, GetCameraField(CAMERA_FIELD_TARGET_DISTANCE)+100.0, 0.0)
+            SetCameraField(CAMERA_FIELD_ANGLE_OF_ATTACK, 269.0, 0.0)
+            DialogSetMessage(cameraSettingDialog, "当前镜头高度："+GetCameraField(CAMERA_FIELD_TARGET_DISTANCE).toString())
+            DialogDisplay(localPlayer, cameraSettingDialog, true)
+    end))
+    
+    CreateTrigger()
+    ..registerDialogButtonEvent(DialogAddButton(cameraSettingDialog, "降低镜头[-100]", 0))
+    ..addCondition(Condition(()->begin
+        if(localPlayer==GetTriggerPlayer())
+            SetCameraField(CAMERA_FIELD_TARGET_DISTANCE, GetCameraField(CAMERA_FIELD_TARGET_DISTANCE)-100.0, 0.0)
+            SetCameraField(CAMERA_FIELD_ANGLE_OF_ATTACK, 269.0, 0.0)
+            DialogSetMessage(cameraSettingDialog, "当前镜头高度："+GetCameraField(CAMERA_FIELD_TARGET_DISTANCE).toString())
+            DialogDisplay(localPlayer, cameraSettingDialog, true)
+    end))
+    
+    CreateTrigger()
+    ..registerDialogButtonEvent(DialogAddButton(cameraSettingDialog, "降低镜头[-500]", 0))
+    ..addCondition(Condition(()->begin
+        if(localPlayer==GetTriggerPlayer())
+            SetCameraField(CAMERA_FIELD_TARGET_DISTANCE, GetCameraField(CAMERA_FIELD_TARGET_DISTANCE)-500.0, 0.0)
+            SetCameraField(CAMERA_FIELD_ANGLE_OF_ATTACK, 269.0, 0.0)
+            DialogSetMessage(cameraSettingDialog, "当前镜头高度："+GetCameraField(CAMERA_FIELD_TARGET_DISTANCE).toString())
+            DialogDisplay(localPlayer, cameraSettingDialog, true)
+    end))
+
+    CreateTrigger()
+    ..registerPlayerChatEvent(localPlayer, "-msd ", false)
+    ..addCondition(Condition(()->begin
+        if(localCharacter!=null)
+            localCharacter.minSyncPeriod=GetEventPlayerChatString().substring(5, 15).toReal()
+            if(localCharacter.minSyncPeriod<0.001)
+                localCharacter.minSyncPeriod=0.001
+            else if(localCharacter.minSyncPeriod>2.0)
+                localCharacter.minSyncPeriod=2.0
+    end))
+
+    CreateTrigger()
+    ..registerPlayerChatEvent(localPlayer, "-cls", true)
+    ..addCondition(Condition(()->begin
+        ClearTextMessages()
+    end))
+
+    CreateTrigger()
+    ..registerPlayerChatEvent(localPlayer, "-play", true)
+    ..addCondition(Condition(()->begin
+        if(replayMode or false)
+            Character playerCharacter=Character.getPlayerCharacter(localPlayer.getId())
+            playerCharacter.isLocalPlayer=true
+            SetCameraTargetController(playerCharacter.object, 0.0, 0.0, false)
+            localCharacter=playerCharacter
+        else
+            print("你已经在游戏中了")
+    end))
+
+    CreateTrigger()
+    ..registerKeyboardEvent()
+    ..addCondition(Condition(()->begin
+        if(getKeyType()==KEY_TYPE_DOWN)
+            if(getKeyCode()==KEY_CODE_RIGHT)
+                if(replayMode)
+                    if(currentObserve>=Character.playerTop)
+                        currentObserve=0
+                    else
+                        currentObserve++
+                    print("当前观察"+COLOR_PLAYER[Character.getPlayerWarcraftIndex(currentObserve)]+playerFromIndex(Character.getPlayerWarcraftIndex(currentObserve)).getName()+"|r")
+                    Character.getPlayerCharacterByRealIndex(currentObserve).observe()
+                    SetCameraField(CAMERA_FIELD_ROTATION, 90.0, 0.0)
+                else if(not localCharacter.isAlive)
+                    if(currentObserve>=Character.playerTop)
+                        currentObserve=0
+                    else
+                        currentObserve++
+                    print("当前观察"+COLOR_PLAYER[Character.getPlayerWarcraftIndex(currentObserve)]+playerFromIndex(Character.getPlayerWarcraftIndex(currentObserve)).getName()+"|r")
+                    Character.getPlayerCharacterByRealIndex(currentObserve).observe()
+                    SetCameraField(CAMERA_FIELD_ROTATION, 90.0, 0.0)
+            else if(getKeyCode()==KEY_CODE_LEFT)
+                if(replayMode)
+                    if(currentObserve<=0)
+                        currentObserve=Character.playerTop
+                    else
+                        currentObserve--
+                    print("当前观察"+COLOR_PLAYER[Character.getPlayerWarcraftIndex(currentObserve)]+playerFromIndex(Character.getPlayerWarcraftIndex(currentObserve)).getName()+"|r")
+                    Character.getPlayerCharacterByRealIndex(currentObserve).observe()
+                    SetCameraField(CAMERA_FIELD_ROTATION, 90.0, 0.0)
+                else if(not localCharacter.isAlive)
+                    if(currentObserve<=0)
+                        currentObserve=Character.playerTop
+                    else
+                        currentObserve--
+                    print("当前观察"+COLOR_PLAYER[Character.getPlayerWarcraftIndex(currentObserve)]+playerFromIndex(Character.getPlayerWarcraftIndex(currentObserve)).getName()+"|r")
+                    Character.getPlayerCharacterByRealIndex(currentObserve).observe()
+                    SetCameraField(CAMERA_FIELD_ROTATION, 90.0, 0.0)
+    end))

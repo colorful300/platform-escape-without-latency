@@ -1,0 +1,21 @@
+package GravityTorch
+
+//unit=e00A
+import Character
+
+init
+    group g=CreateGroup()
+    GroupEnumUnitsOfPlayer(g, playerFromIndex(0), null)
+    for u from g
+        if(u.getTypeId()=='e00A')
+            CreateTrigger()
+            ..registerUnitInRange(u, 64.0, null)
+            ..addCondition(Condition(()->begin
+                if(GetTriggerUnit().getTypeId()=='ewsp')
+                    Character character=GetTriggerUnit().getUserData() castTo Character
+                    if(character.isLocalPlayer)
+                        character.ySpeed=0.0
+                        character.gravityReverse()
+                        character.extraJumpRemain=character.extraJump
+            end))
+    g.destr()

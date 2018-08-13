@@ -1,0 +1,59 @@
+package KeyboardEvent
+
+trigger keyboardHookTrigger
+unit keyType
+unit keyCode
+unit keyHandle
+
+trigger array keyboardTriggers
+int keyboardTriggerTop=-1
+
+public constant int KEY_TYPE_DOWN=1
+public constant int KEY_TYPE_UP=2
+public constant int KEY_CODE_LEFT=516
+public constant int KEY_CODE_RIGHT=518
+
+trigger currentTrigger
+
+public function getKeyType() returns int
+    return keyType.getUserData()
+
+//Left=516,Up=517,Right=518,Down=519
+//A-Z=65-90
+//Space=32
+//F1-F12=768-775
+//Esc=512
+
+public function getKeyCode() returns int
+    return keyCode.getUserData()
+
+public function getCurrentTrigger() returns trigger
+    return currentTrigger
+
+public function trigger.registerKeyboardEvent()
+    keyboardTriggerTop++
+    keyboardTriggers[keyboardTriggerTop]=this
+
+init
+    AbilityId("exec-lua:\"KeyboardHook\"")
+    keyboardHookTrigger=CreateTrigger()
+    ..addCondition(Condition(()->begin
+        for i=0 to keyboardTriggerTop
+            currentTrigger=keyboardTriggers[i]
+            currentTrigger.evaluate()
+        return false
+    end))
+    CreateTimer()
+    ..start(0.0)->
+        GetExpiredTimer().destr()
+        group g=CreateGroup()
+        GroupEnumUnitsOfPlayer(g, playerFromIndex(15), null)
+        for u from g
+            if(u.getTypeId()=='e000')
+                keyType=u
+            else if(u.getTypeId()=='e001')
+                keyHandle=u
+            else if(u.getTypeId()=='e002')
+                keyCode=u
+        keyHandle.setUserData(keyboardHookTrigger.getHandleId())
+        g.destr()

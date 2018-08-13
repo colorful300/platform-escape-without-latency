@@ -1,0 +1,44 @@
+package Mover
+
+public interface OnMoveEnd
+    function run()
+
+public class Mover
+    unit object
+    real xStep
+    real yStep
+    real timeRemain
+    private int id
+    OnMoveEnd onMoveEnd=null
+
+    private static Mover array movers
+    private static int top=-1
+    private static constant real timeout=0.001
+
+    private static timer centerTimer=CreateTimer()..startPeriodic(timeout, ()->begin
+        for i=0 to top
+            movers[i].runStep()
+    end)
+
+    construct(unit object,real endX,real endY,real time)
+        this.object=object
+        xStep=(endX-object.getX())/time*timeout
+        yStep=(endY-object.getY())/time*timeout
+        timeRemain=time
+        top++
+        id=top
+        movers[top]=this
+
+    ondestroy
+        movers[id]=movers[top]
+        movers[top].id=id
+        top--
+        if(onMoveEnd!=null)
+            onMoveEnd.run()
+            destroy onMoveEnd
+
+    private function runStep()
+        object.setPos(vec2(object.getX()+xStep, object.getY()+yStep))
+        timeRemain-=timeout
+        if(timeRemain<=0.0)
+            destroy this

@@ -1,0 +1,19 @@
+package GlobalTable
+
+public hashtable globalTable=InitHashtable()
+
+public function int2Trigger(int id) returns trigger
+    globalTable.saveFogStateHandle(0, 0, ConvertFogState(id))
+    return globalTable.loadTriggerHandle(0, 0)
+
+public function trigger.setData(int index,int value)
+    globalTable.saveInt(this.getHandleId(), index, value)
+
+public function trigger.setData(int index,unit u)
+    globalTable.saveUnitHandle(this.getHandleId(), index, u)
+
+public function trigger.getData(int index) returns int
+    return globalTable.loadInt(this.getHandleId(), index)
+
+public function trigger.loadUnit(int index) returns unit
+    return globalTable.loadUnitHandle(this.getHandleId(), index)

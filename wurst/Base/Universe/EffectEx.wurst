@@ -1,0 +1,28 @@
+package EffectEx
+
+import TimerEx
+
+public constant string array COLOR_PLAYER=[
+    "|cffff0202","|cff0041ff","|cff18E5B8","|cff530080",
+    "|cfffffc00","|cfffe890d","|cff1fbf00","|cffe45aaf",
+    "|cff949596","|cff7dbef1","|cff0f6145","|cff4d2903"
+]
+
+public constant string EFFECT_DEATHCLAP="Units\\NightElf\\Wisp\\WispExplode.mdl"
+public constant string EFFECT_DEATHCLAP2="Abilities\\Spells\\Human\\Thunderclap\\ThunderClapCaster.mdl"
+public constant string EFFECT_RESURRECT="Abilities\\Spells\\Human\\Resurrect\\ResurrectTarget.mdl"
+public constant string EFFECT_LANDJUMP="Abilities\\Spells\\Human\\Polymorph\\PolyMorphTarget.mdl"
+public constant string EFFECT_WALLJUMP="Abilities\\Spells\\Orc\\FeralSpirit\\feralspiritdone.mdl"
+public constant string EFFECT_AIRJUMP="Abilities\\Spells\\Other\\Silence\\SilenceAreaBirth.mdl"
+public constant string EFFECT_SUPERBOOST="Abilities\\Spells\\Demon\\DarkPortal\\DarkPortalTarget.mdl"
+public constant string EFFECT_JUMPER="Abilities\\Spells\\Undead\\AnimateDead\\AnimateDeadTarget.mdl"
+
+public class EffectAirJump
+    effect object
+    ondestroy
+        object.destr()
+    construct(vec2 pos)
+        object=addEffect(EFFECT_AIRJUMP, pos)
+        new TimerEx(0.57, false)->
+            destroy this
+        

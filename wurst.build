@@ -1,0 +1,8 @@
+---
+projectName: "KeyboardGame"
+dependencies:
+- "https://github.com/wurstscript/wurstStdlib2"
+buildMapData:
+  name: "PELC"
+  fileName: "output"
+  author: "deraium"

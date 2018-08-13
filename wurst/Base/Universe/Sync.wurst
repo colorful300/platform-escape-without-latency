@@ -1,0 +1,128 @@
+package Sync
+
+import GlobalTable
+
+trigger pointTrigger
+trigger immediateTrigger
+unit orderUnitSender
+unit orderIdSender
+
+interface OnSyncIntComplete
+    function run(int x, int y)
+
+interface OnSyncRealComplete
+    function run(real x, real y)
+
+interface OnSyncEventComplete
+    function run()
+
+public class SyncIntDummy
+    unit object
+    OnSyncIntComplete callback
+    trigger trig
+    construct(int owner, OnSyncIntComplete callback)
+        object=CreateUnit(playerFromIndex(owner), 'e007', 0.0, 0.0, 0.0)
+        this.callback=callback
+        trig=CreateTrigger()
+        ..registerUnitEvent(object, EVENT_UNIT_ISSUED_POINT_ORDER)
+        ..addCondition(Condition(()->begin
+            if(GetIssuedOrderId()==851990)
+                thistype syncDummy=globalTable.loadInt(GetTriggeringTrigger().getHandleId(), 0) castTo thistype
+                syncDummy.object.issueImmediateOrderById(851972)
+                real adjustedX=GetOrderPointX()
+                real adjustedY=GetOrderPointY()
+                if(adjustedX>=0.0)
+                    adjustedX+=0.5
+                else
+                    adjustedX-=0.5
+                if(adjustedY>=0.0)
+                    adjustedY+=0.5
+                else
+                    adjustedY-=0.5
+                syncDummy.callback.run(adjustedX.toInt(), adjustedY.toInt())
+        end))
+        globalTable.saveInt(trig.getHandleId(), 0, this castTo int)
+    ondestroy
+        object.remove()
+        destroy callback
+        trig.destr()
+    function sync(int x,int y)
+        ClearSelection()
+        SelectUnit(object, true)
+        object..setX(x.toReal())..setY(y.toReal())
+        orderUnitSender.setUserData(object.getHandleId())
+        orderIdSender.setUserData(851990)
+        pointTrigger.evaluate()
+
+public class SyncRealDummy
+    unit object
+    OnSyncRealComplete callback
+    trigger trig
+    construct(int owner, OnSyncRealComplete callback)
+        object=CreateUnit(playerFromIndex(owner), 'e007', 0.0, 0.0, 0.0)
+        this.callback=callback
+        trig=CreateTrigger()
+        ..registerUnitEvent(object, EVENT_UNIT_ISSUED_POINT_ORDER)
+        ..addCondition(Condition(()->begin
+            if(GetIssuedOrderId()==851990)
+                thistype syncDummy=globalTable.loadInt(GetTriggeringTrigger().getHandleId(), 0) castTo thistype
+                syncDummy.object.issueImmediateOrderById(851972)
+                syncDummy.callback.run(GetOrderPointX(), GetOrderPointY())
+        end))
+        globalTable.saveInt(trig.getHandleId(), 0, this castTo int)
+    ondestroy
+        object.remove()
+        destroy callback
+        trig.destr()
+    function sync(real x,real y)
+        ClearSelection()
+        SelectUnit(object, true)
+        object..setX(x)..setY(y)
+        orderUnitSender.setUserData(object.getHandleId())
+        orderIdSender.setUserData(851990)
+        pointTrigger.evaluate()
+
+public class SyncEventDummy
+    unit object
+    OnSyncEventComplete callback
+    trigger trig
+    construct(int owner, OnSyncEventComplete callback)
+        object=CreateUnit(playerFromIndex(owner), 'e007', 0.0, 0.0, 0.0)
+        this.callback=callback
+        trig=CreateTrigger()
+        ..registerUnitEvent(object, EVENT_UNIT_ISSUED_ORDER)
+        ..addCondition(Condition(()->begin
+            if(GetIssuedOrderId()==851993)
+                thistype syncDummy=globalTable.loadInt(GetTriggeringTrigger().getHandleId(), 0) castTo thistype
+                syncDummy.object.issueImmediateOrderById(851972)
+                syncDummy.callback.run()
+        end))
+        globalTable.saveInt(trig.getHandleId(), 0, this castTo int)
+    ondestroy
+        object.remove()
+        destroy callback
+        trig.destr()
+    function sync()
+        ClearSelection()
+        SelectUnit(object, true)
+        orderUnitSender.setUserData(object.getHandleId())
+        orderIdSender.setUserData(851993)
+        immediateTrigger.evaluate()
+
+init
+    AbilityId("exec-lua:\"Sync\"")
+    CreateTimer()
+    ..start(0.0)->
+        GetExpiredTimer().destr()
+        group g=CreateGroup()
+        GroupEnumUnitsOfPlayer(g, Player(15), null)
+        for u from g
+            switch u.getTypeId()
+                case 'e003'
+                    pointTrigger=int2Trigger(u.getUserData())
+                case 'e004'
+                    orderUnitSender=u
+                case 'e005'
+                    orderIdSender=u
+                case 'e006'
+                    immediateTrigger=int2Trigger(u.getUserData())

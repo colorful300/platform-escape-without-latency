@@ -1,0 +1,82 @@
+package TimerEx
+
+public interface OnTimerFinishListener
+    function run()
+
+public class TimerEx
+    static constant real timeout1000=0.001
+    static real globalTime1000=-6000.0
+    static constant real timeout100=0.01
+    static real globalTime100=-6000.0
+    static thistype currentTimer
+
+    private static timer centerTimer1000=CreateTimer()..startPeriodic(timeout1000, function runStatic1000)
+    private static timer centerTimer100=CreateTimer()..startPeriodic(timeout100, function runStatic100)
+    private static thistype array timers1000
+    private static thistype array timers100
+    private static int timerTop1000=-1
+    private static int timerTop100=-1
+
+    OnTimerFinishListener callback
+    real finishTime
+    real period
+    bool isPeriodic
+
+    private int id
+    private bool is1000
+
+    construct(real time, bool periodic, OnTimerFinishListener callback)
+        isPeriodic=periodic
+        period=time
+        this.callback=callback
+        if(time<0.01)
+            finishTime=globalTime1000+time
+            timerTop1000++
+            timers1000[timerTop1000]=this
+            id=timerTop1000
+            is1000=true
+        else
+            finishTime=globalTime100+time
+            timerTop100++
+            timers100[timerTop100]=this
+            id=timerTop100
+            is1000=false
+
+    ondestroy
+        destroy callback
+        if(is1000)
+            timers1000[id]=timers1000[timerTop1000]
+            timers1000[id].id=id
+            timerTop1000--
+        else
+            timers100[id]=timers100[timerTop100]
+            timers100[id].id=id
+            timerTop100--
+
+    static private function runStatic1000()
+        globalTime1000+=timeout1000
+        for i=0 to timerTop1000
+            timers1000[i].run1000()
+
+    static private function runStatic100()
+        globalTime100+=timeout100
+        for i=0 to timerTop100
+            timers100[i].run100()
+
+    private function run1000()
+        if(finishTime<=globalTime1000)
+            currentTimer=this
+            callback.run()
+            if(isPeriodic)
+                finishTime+=period
+            else
+                destroy this
+
+    private function run100()
+        if(finishTime<=globalTime100)
+            currentTimer=this
+            callback.run()
+            if(isPeriodic)
+                finishTime+=period
+            else
+                destroy this

@@ -1,0 +1,13 @@
+package PlayerLeave
+
+import Scoreboard
+import EffectEx
+
+init
+    trigger playerLeaveTrigger=CreateTrigger()
+    ..addCondition(Condition(()->begin
+        scoreboard.getItem(boardPlayerRealIndex[GetTriggerPlayer().getId()]+1, 4).setValue("|cffff0000离开|r")
+        print(COLOR_PLAYER[GetTriggerPlayer().getId()]+GetTriggerPlayer().getName()+"|r已离开游戏")
+    end))
+    for i=1 to 8
+        playerLeaveTrigger.registerPlayerEvent(playerFromIndex(i), EVENT_PLAYER_LEAVE)

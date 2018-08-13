@@ -1,0 +1,28 @@
+package JumpPlat
+
+//speed=950
+//unit=e009
+import Character
+import GlobalTable
+import TimerEx
+
+init
+    group g=CreateGroup()
+    GroupEnumUnitsOfPlayer(g, playerFromIndex(0), null)
+    for u from g
+        if(u.getTypeId()=='e009')
+            CreateTrigger()
+            ..registerUnitInRange(u, 64.0, null)
+            ..addCondition(Condition(()->begin
+                unit platUnit=GetTriggeringTrigger().loadUnit(0)
+                if(GetTriggerUnit().getTypeId()=='ewsp' and not IsUnitHidden(platUnit))
+                    Character character=GetTriggerUnit().getUserData() castTo Character
+                    if(character.isLocalPlayer)
+                        character.ySpeed=950.0
+                        character.extraJumpRemain=character.extraJump
+                        platUnit.hide()
+                        new TimerEx(2.5, false)->
+                            platUnit.show()
+            end))
+            ..setData(0, u)
+    g.destr()

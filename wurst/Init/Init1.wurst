@@ -1,0 +1,39 @@
+package Init1
+
+import Character
+import Scoreboard
+
+init
+    SetCameraField(CAMERA_FIELD_ANGLE_OF_ATTACK, 269.0, 0.0)
+    SetCameraField(CAMERA_FIELD_TARGET_DISTANCE, 2500.0, 0.0)
+    CreateFogModifierRectBJ( true, localPlayer, FOG_OF_WAR_VISIBLE, GetPlayableMapRect() )
+    CreateTimer().start(0.1)->
+        GetExpiredTimer().destr()
+        CreateTrigger()
+        ..addAction(()->begin
+            replayMode=false
+            DestroyTrigger(GetTriggeringTrigger())
+            EnableUserControl(false)
+            PauseGame(true)
+            TriggerSleepAction(0.0)
+            SetCameraPosition(64.0, 64.0)
+            TriggerSleepAction(0.0)
+            PauseGame(false)
+            if(GetCameraTargetPositionX()!=64.0)
+                print("录像模式已开启(请不要在读图完毕开始游戏时做任何操作或者切出游戏，否则可能误判为录像模式)")
+                print("按键盘←→键来切换观察玩家")
+                replayMode=true
+            else
+                print("使用键盘←↑→↓来控制小球移动，Esc键查看菜单")
+            EnableUserControl(true)
+            for i=1 to 8
+                if(GetPlayerSlotState(playerFromIndex(i))==PLAYER_SLOT_STATE_PLAYING and GetPlayerController(playerFromIndex(i))==MAP_CONTROL_USER)
+                    new Character(i, 'ewsp', 0.0, 0.0, GetLocalPlayer()==Player(i) and not replayMode).object.getUserData()
+                    boardDeathCount[boardPlayerCount]=0
+                    boardGoalCount[boardPlayerCount]=0
+                    boardPlayerRealIndex[i]=boardPlayerCount
+                    boardPlayerCount++
+            initScoreboard(boardPlayerCount)
+        end)
+        ..execute()
+

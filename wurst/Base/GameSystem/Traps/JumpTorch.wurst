@@ -1,0 +1,21 @@
+package JumpTorch
+
+//speed=975
+//unit=e008
+import Character
+
+init
+    group g=CreateGroup()
+    GroupEnumUnitsOfPlayer(g, playerFromIndex(0), null)
+    for u from g
+        if(u.getTypeId()=='e008')
+            CreateTrigger()
+            ..registerUnitInRange(u, 64.0, null)
+            ..addCondition(Condition(()->begin
+                if(GetTriggerUnit().getTypeId()=='ewsp')
+                    Character character=GetTriggerUnit().getUserData() castTo Character
+                    if(character.isLocalPlayer)
+                        character.ySpeed=975.0
+                        character.extraJumpRemain=character.extraJump
+            end))
+    g.destr()

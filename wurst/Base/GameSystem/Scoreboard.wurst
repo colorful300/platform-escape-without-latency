@@ -1,0 +1,30 @@
+package Scoreboard
+
+import EffectEx
+
+public multiboard scoreboard=CreateMultiboard()
+public int array boardGoalCount
+public int array boardDeathCount
+public int boardPlayerCount=0
+public int array boardPlayerRealIndex=[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1]
+
+public function initScoreboard(int playerCount)
+    scoreboard
+    ..setColumnCount(5)
+    ..setRowCount(playerCount+1)
+    ..setTitle("计分板")
+    ..display(false)
+    ..setItemsStyle(true, false)
+    scoreboard.getItem(0, 0)..setValue("玩家")..setWidth(0.1)
+    scoreboard.getItem(0, 1).setValue("通关")
+    scoreboard.getItem(0, 2).setValue("死亡")
+    scoreboard.getItem(0, 3).setValue("延时")
+    scoreboard.getItem(0, 4).setValue("状态")
+    for i=1 to 8
+        if(boardPlayerRealIndex[i]!=-1)
+            scoreboard.getItem(boardPlayerRealIndex[i]+1, 0)..setValue(COLOR_PLAYER[i]+playerFromIndex(i).getName()+"|r")..setWidth(0.1)
+            scoreboard.getItem(boardPlayerRealIndex[i]+1, 1).setValue("0")
+            scoreboard.getItem(boardPlayerRealIndex[i]+1, 2).setValue("0")
+            scoreboard.getItem(boardPlayerRealIndex[i]+1, 3).setValue("未知")
+            scoreboard.getItem(boardPlayerRealIndex[i]+1, 4).setValue("游戏中")
+    scoreboard.display(true)

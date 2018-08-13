@@ -1,0 +1,56 @@
+package TerrainType
+
+constant int WALL_KEY=0
+constant int KILL_KEY=1
+constant int SAVE_KEY=2
+constant int JUMP_KEY=3
+constant int PMUJ_KEY=4
+constant int NOTHING_KEY=5
+public int saveRectFirst
+
+public rect array saveRects=[
+    Rect(-4416.0, 3648.0, -4032.0, 4160.0),
+    Rect(-2240.0, -320.0, -1856.0, 64.0),
+    Rect(4928.0, -1600.0, 5440.0, -960.0),
+    Rect(10560.0, 5056.0, 10816.0, 5312.0),
+    Rect(10176.0, 2880.0, 10560.0, 3264.0),
+    Rect(7616.0, -960.0, 8128.0, -704.0),
+    Rect(6976.0, -2880.0, 7360.0, -2496.0),
+    Rect(3008.0, -2752.0, 3136.0, -2112),
+    Rect(-5056.0, -1088.0, -4928.0, -704.0),
+    Rect(-5696.0, -5952.0, -5312.0, -5312.0),
+    Rect(-4544.0, -4288.0, -4288.0, -4032.0),
+    Rect(-1600.0, -5472.0, -1088.0, -5280.0)
+]
+public int saveRectTop=11
+
+hashtable table=InitHashtable()
+..saveBoolean('Yblm', WALL_KEY, true)       //城邦黑色地砖
+..saveBoolean('Ldrt', NOTHING_KEY, true)    //洛丹伦泥地
+..saveBoolean('Dlvc', KILL_KEY, true)       //地牢熔岩碎片
+..saveBoolean('Dlav', KILL_KEY, true)       //地牢火山岩
+//..saveBoolean('Oaby', WALL_KEY, false)..saveBoolean('Oaby', KILL_KEY, false)  //边缘之地深渊
+//..saveBoolean('Xsqd', WALL_KEY, false)..saveBoolean('Xsqd', KILL_KEY, false)  //达拉然正方形地砖
+//..saveBoolean('Xrtl', WALL_KEY, false)..saveBoolean('Xrtl', KILL_KEY, false)  //达拉然圆形地砖
+//..saveBoolean('Jrtl', WALL_KEY, false)..saveBoolean('Jrtl', KILL_KEY, false)  //达拉然遗迹圆形地砖
+
+public function isTerrainNothing(real x,real y) returns boolean
+    return table.hasBoolean(GetTerrainType(x, y), NOTHING_KEY)
+public function isTerrainWall(real x,real y) returns boolean
+    return table.hasBoolean(GetTerrainType(x, y), WALL_KEY)
+public function isTerrainKiller(real x,real y) returns boolean
+    return table.hasBoolean(GetTerrainType(x, y), KILL_KEY)
+public function isTerrainSaver(real x,real y) returns boolean
+    return GetTerrainType(x, y)=='Xsqd'
+public function isTerrainJumper(real x,real y) returns boolean
+    return GetTerrainType(x, y)=='Xrtl'
+public function isTerrainReverseJumper(real x,real y) returns boolean
+    return GetTerrainType(x, y)=='Jrtl'
+public function getSaveRect(real x,real y) returns int
+    for i=0 to saveRectTop
+        if(saveRects[i].getMinX()<=x and saveRects[i].getMaxX()>=x and saveRects[i].getMinY()<=y and saveRects[i].getMaxY()>=y)
+            return i
+    return -1
+
+init
+    saveRectFirst=saveRects[0].getHandleId()

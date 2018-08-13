@@ -1,0 +1,115 @@
+package Test2
+
+import Character
+import TimerEx
+
+TimerEx displayPositionTimer
+
+trigger testMoveXTrigger=CreateTrigger()
+..registerPlayerChatEvent(playerFromIndex(1), "x", false)
+..addCondition(Condition(()->begin
+    if(GetEventPlayerChatString().substring(1, 1)!="=")
+        Character.getPlayerCharacter(1).setX(Character.getPlayerCharacter(1).x+GetEventPlayerChatString().substring(1, 11).toReal())
+end))
+..disable()
+
+trigger testMoveYTrigger=CreateTrigger()
+..registerPlayerChatEvent(playerFromIndex(1), "y", false)
+..addCondition(Condition(()->begin
+    if(GetEventPlayerChatString().substring(1, 1)!="=")
+        Character.getPlayerCharacter(1).setY(Character.getPlayerCharacter(1).y+GetEventPlayerChatString().substring(1, 11).toReal())
+end))
+..disable()
+
+trigger testSetXTrigger=CreateTrigger()
+..registerPlayerChatEvent(playerFromIndex(1), "x=", false)
+..addCondition(Condition(()->begin
+    Character.getPlayerCharacter(1).setX(GetEventPlayerChatString().substring(2, 12).toReal())
+end))
+..disable()
+
+trigger testSetYTrigger=CreateTrigger()
+..registerPlayerChatEvent(playerFromIndex(1), "y=", false)
+..addCondition(Condition(()->begin
+    Character.getPlayerCharacter(1).setY(GetEventPlayerChatString().substring(2, 12).toReal())
+end))
+..disable()
+
+trigger testSetGravitySignTrigger=CreateTrigger()
+..registerPlayerChatEvent(playerFromIndex(1), "g rev", false)
+..addCondition(Condition(()->begin
+    Character.getPlayerCharacter(1).gravityReverse()
+end))
+..disable()
+
+trigger testDisplayXYTrigger=CreateTrigger()
+..registerPlayerChatEvent(playerFromIndex(1), "show pos on", true)
+..registerPlayerChatEvent(playerFromIndex(1), "show pos", true)
+..addCondition(Condition(()->begin
+    Character character=Character.getPlayerCharacter(1)
+    displayPositionTimer=new TimerEx(0.5, true)->
+        ClearTextMessages()
+        DisplayTimedTextToPlayer(playerFromIndex(1), 0., 0., DEBUG_MSG_DURATION, "x="+character.x.toString()+",y="+character.y.toString())
+end))
+..disable()
+
+trigger testStopDisplayXYTrigger=CreateTrigger()
+..registerPlayerChatEvent(playerFromIndex(1), "show pos off", true)
+..addCondition(Condition(()->begin
+    destroy displayPositionTimer
+end))
+..disable()
+
+trigger testInvulnerableOnTrigger=CreateTrigger()
+..registerPlayerChatEvent(playerFromIndex(1), "inv on", true)
+..registerPlayerChatEvent(playerFromIndex(1), "inv", true)
+..addCondition(Condition(()->begin
+    Character.getPlayerCharacter(1).isInvulnerable=true
+end))
+..disable()
+
+trigger testInvulnerableOffTrigger=CreateTrigger()
+..registerPlayerChatEvent(playerFromIndex(1), "inv off", true)
+..addCondition(Condition(()->begin
+    Character.getPlayerCharacter(1).isInvulnerable=false
+end))
+..disable()
+
+trigger testmodOnTrigger=CreateTrigger()
+..registerPlayerChatEvent(playerFromIndex(1), "testmod on", true)
+..registerPlayerChatEvent(playerFromIndex(1), "testmod", true)
+..addCondition(Condition(()->begin
+    DisplayTimedTextToPlayer(playerFromIndex(1), 0., 0., DEBUG_MSG_DURATION, "开启测试模式(1号位玩家可用测试命令)")
+    DisplayTimedTextToPlayer(playerFromIndex(1), 0., 0., DEBUG_MSG_DURATION, "x=64.0:设置小球x轴为64.0")
+    DisplayTimedTextToPlayer(playerFromIndex(1), 0., 0., DEBUG_MSG_DURATION, "y=64.0:设置小球y轴为64.0")
+    DisplayTimedTextToPlayer(playerFromIndex(1), 0., 0., DEBUG_MSG_DURATION, "x-64.0:小球x轴减少64.0")
+    DisplayTimedTextToPlayer(playerFromIndex(1), 0., 0., DEBUG_MSG_DURATION, "y+64.0:小球y轴增加64.0")
+    DisplayTimedTextToPlayer(playerFromIndex(1), 0., 0., DEBUG_MSG_DURATION, "g rev:重力反转")
+    DisplayTimedTextToPlayer(playerFromIndex(1), 0., 0., DEBUG_MSG_DURATION, "show pos on/off:开/关显示坐标")
+    DisplayTimedTextToPlayer(playerFromIndex(1), 0., 0., DEBUG_MSG_DURATION, "inv on/off:开/关无敌")
+    DisplayTimedTextToPlayer(playerFromIndex(1), 0., 0., DEBUG_MSG_DURATION, "testmod on/off:开/关测试模式")
+    testInvulnerableOnTrigger.enable()
+    testInvulnerableOffTrigger.enable()
+    testSetGravitySignTrigger.enable()
+    testSetXTrigger.enable()
+    testSetYTrigger.enable()
+    testMoveXTrigger.enable()
+    testMoveYTrigger.enable()
+    testDisplayXYTrigger.enable()
+    testStopDisplayXYTrigger.enable()
+end))
+
+trigger testmodOffTrigger=CreateTrigger()
+..registerPlayerChatEvent(playerFromIndex(1), "testmod off", true)
+..addCondition(Condition(()->begin
+    DisplayTimedTextToPlayer(playerFromIndex(1), 0., 0., DEBUG_MSG_DURATION, "关闭测试模式")
+    testInvulnerableOnTrigger.disable()
+    testInvulnerableOffTrigger.disable()
+    testSetGravitySignTrigger.disable()
+    testSetXTrigger.disable()
+    testSetYTrigger.disable()
+    testMoveXTrigger.disable()
+    testMoveYTrigger.disable()
+    testDisplayXYTrigger.disable()
+    testStopDisplayXYTrigger.disable()
+end))

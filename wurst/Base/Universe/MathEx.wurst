@@ -1,0 +1,6 @@
+package MathEx
+
+public function abs(real x) returns real
+    if(x<0.0)
+        return -x
+    return x
