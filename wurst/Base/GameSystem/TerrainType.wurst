@@ -1,11 +1,11 @@
 package TerrainType
 
-constant int WALL_KEY=0
-constant int KILL_KEY=1
-constant int SAVE_KEY=2
-constant int JUMP_KEY=3
-constant int PMUJ_KEY=4
-constant int NOTHING_KEY=5
+constant int WALL_KEY=0     //墙/地面
+constant int KILL_KEY=1     //陷阱
+constant int SAVE_KEY=2     //通关区域
+constant int JUMP_KEY=3     //跳台
+constant int PMUJ_KEY=4     //反重力跳台
+constant int NOTHING_KEY=5  //背景
 public int saveRectFirst
 
 public rect array saveRects=[
@@ -21,18 +21,14 @@ public rect array saveRects=[
     Rect(-5696.0, -5952.0, -5312.0, -5312.0),
     Rect(-4544.0, -4288.0, -4288.0, -4032.0),
     Rect(-1600.0, -5472.0, -1088.0, -5280.0)
-]
-public int saveRectTop=11
+]//通关矩形区域
+public int saveRectTop=11   //通关区域数量-1
 
 hashtable table=InitHashtable()
 ..saveBoolean('Yblm', WALL_KEY, true)       //城邦黑色地砖
 ..saveBoolean('Ldrt', NOTHING_KEY, true)    //洛丹伦泥地
 ..saveBoolean('Dlvc', KILL_KEY, true)       //地牢熔岩碎片
 ..saveBoolean('Dlav', KILL_KEY, true)       //地牢火山岩
-//..saveBoolean('Oaby', WALL_KEY, false)..saveBoolean('Oaby', KILL_KEY, false)  //边缘之地深渊
-//..saveBoolean('Xsqd', WALL_KEY, false)..saveBoolean('Xsqd', KILL_KEY, false)  //达拉然正方形地砖
-//..saveBoolean('Xrtl', WALL_KEY, false)..saveBoolean('Xrtl', KILL_KEY, false)  //达拉然圆形地砖
-//..saveBoolean('Jrtl', WALL_KEY, false)..saveBoolean('Jrtl', KILL_KEY, false)  //达拉然遗迹圆形地砖
 
 public function isTerrainNothing(real x,real y) returns boolean
     return table.hasBoolean(GetTerrainType(x, y), NOTHING_KEY)
