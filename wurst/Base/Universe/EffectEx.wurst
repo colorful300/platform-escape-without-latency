@@ -25,4 +25,3 @@ public class EffectAirJump
         object=addEffect(EFFECT_AIRJUMP, pos)
         new TimerEx(0.57, false)->
             destroy this
-        

@@ -36,4 +36,3 @@ init
             initScoreboard(boardPlayerCount)
         end)
         ..execute()
-
