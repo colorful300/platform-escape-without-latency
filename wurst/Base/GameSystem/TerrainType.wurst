@@ -1,11 +1,12 @@
 package TerrainType
 
-constant int WALL_KEY=0     //墙/地面
-constant int KILL_KEY=1     //陷阱
-constant int SAVE_KEY=2     //通关区域
-constant int JUMP_KEY=3     //跳台
-constant int PMUJ_KEY=4     //反重力跳台
-constant int NOTHING_KEY=5  //背景
+constant int KEY_WALL=0         //墙/地面
+constant int KEY_KILL=1         //陷阱
+constant int KEY_SAVE=2         //通关区域
+constant int KEY_JUMP=3         //跳台
+constant int KEY_PMUJ=4         //反重力跳台
+constant int KEY_NOTHING=5      //背景
+constant int KEY_CANNOT_JUMP=6  //不可跳跃墙面/区域
 public int saveRectFirst
 
 public rect array saveRects=[
@@ -25,23 +26,28 @@ public rect array saveRects=[
 public int saveRectTop=11   //通关区域数量-1
 
 hashtable table=InitHashtable()
-..saveBoolean('Yblm', WALL_KEY, true)       //城邦黑色地砖
-..saveBoolean('Ldrt', NOTHING_KEY, true)    //洛丹伦泥地
-..saveBoolean('Dlvc', KILL_KEY, true)       //地牢熔岩碎片
-..saveBoolean('Dlav', KILL_KEY, true)       //地牢火山岩
+..saveBoolean('Yblm', KEY_WALL, true)       //城邦黑色地砖
+..saveBoolean('Ldrt', KEY_NOTHING, true)    //洛丹伦泥地
+..saveBoolean('Dlvc', KEY_KILL, true)       //地牢熔岩碎片
+..saveBoolean('Dlav', KEY_KILL, true)       //地牢火山岩
+..saveBoolean('Xspq', KEY_SAVE, true)       //
+..saveBoolean('Xrtl', KEY_JUMP, true)       //
+..saveBoolean('Jrtl', KEY_PMUJ, true)       //
 
 public function isTerrainNothing(real x,real y) returns boolean
-    return table.hasBoolean(GetTerrainType(x, y), NOTHING_KEY)
+    return table.hasBoolean(GetTerrainType(x, y), KEY_NOTHING)
 public function isTerrainWall(real x,real y) returns boolean
-    return table.hasBoolean(GetTerrainType(x, y), WALL_KEY)
+    return table.hasBoolean(GetTerrainType(x, y), KEY_WALL)
 public function isTerrainKiller(real x,real y) returns boolean
-    return table.hasBoolean(GetTerrainType(x, y), KILL_KEY)
+    return table.hasBoolean(GetTerrainType(x, y), KEY_KILL)
 public function isTerrainSaver(real x,real y) returns boolean
-    return GetTerrainType(x, y)=='Xsqd'
+    return table.hasBoolean(GetTerrainType(x, y), KEY_SAVE)
 public function isTerrainJumper(real x,real y) returns boolean
-    return GetTerrainType(x, y)=='Xrtl'
+    return table.hasBoolean(GetTerrainType(x, y), KEY_JUMP)
 public function isTerrainReverseJumper(real x,real y) returns boolean
-    return GetTerrainType(x, y)=='Jrtl'
+    return table.hasBoolean(GetTerrainType(x, y), KEY_PMUJ)
+public function isTerrainCannotJump(real x,real y) returns boolean
+    return table.hasBoolean(GetTerrainType(x, y), KEY_CANNOT_JUMP)
 public function getSaveRect(real x,real y) returns int
     for i=0 to saveRectTop
         if(saveRects[i].getMinX()<=x and saveRects[i].getMaxX()>=x and saveRects[i].getMinY()<=y and saveRects[i].getMaxY()>=y)

@@ -735,7 +735,11 @@ public class Character
                 enableGravitySwitch=true
 
     function jump()
-        if(isTerrainWall(getLeft()-(moveSpeed+abs(xSpeedExtra))*timeout, y))
+        if(isTerrainCannotJump(x, y))
+            return
+        real leftWallX=getLeft()-(moveSpeed+abs(xSpeedExtra))*timeout
+        real rightWallX=getRight()+(moveSpeed+abs(xSpeedExtra))*timeout
+        if(isTerrainWall(leftWallX, y)and not isTerrainCannotJump(leftWallX, y))
             ySpeed=jumpSpeed
             xSpeedExtra+=750.0
             addEffect(EFFECT_WALLJUMP, vec2(x, y)).destr()
@@ -745,7 +749,7 @@ public class Character
             extraJumpRemain=extraJump
             new TimerEx(0.1, false)->
                 xSpeedExtra-=750.0
-        else if(isTerrainWall(getRight()+(moveSpeed+abs(xSpeedExtra))*timeout, y))
+        else if(isTerrainWall(rightWallX, y)and not isTerrainCannotJump(rightWallX, y))
             ySpeed=jumpSpeed
             xSpeedExtra-=750.0
             addEffect(EFFECT_WALLJUMP, vec2(x, y)).destr()
@@ -755,7 +759,7 @@ public class Character
             extraJumpRemain=extraJump
             new TimerEx(0.1, false)->
                 xSpeedExtra+=750.0
-        else if(isLanding)
+        else if(isLanding and not isTerrainCannotJump(x, getBottom()-dropSpeed*timeout))
             ySpeed=jumpSpeed
             isLanding=false
             addEffect(EFFECT_LANDJUMP, vec2(x, y)).destr()
