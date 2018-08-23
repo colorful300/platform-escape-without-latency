@@ -4,11 +4,15 @@
 
 完成进度似乎还不到一半的样子。
 
+# 下载
+
+[内置JAPI版](https://github.com/colorful300/platform-escape-without-delay/raw/master/output.w3x)
+
+YDWELua引擎版懒得搞了，可以自行把map.w3x内的几个触发删掉，然后把imports/callback和imports/wenhao_plugin.tga两个文件删掉，然后把wurst/Base/Universe/Sync.wurst和wurst/Base/Events/KeyboardEvent.wurst里的AbilityId改成Cheat即可。
+
 # 逃脱大师
 
 这个图看起来像是逃脱大师系列的样子，请参考[逃脱大师的百度百科](https://baike.baidu.com/item/逃脱大师/20175006)。
-
-做完之后难度大概和EBI差不多？
 
 这个图的按键操作没有延时，玩家本地的操作由玩家本地完成(当然也是可以多人同时游戏的)，所以就无需使用反延时工具了，可以在对战平台上愉快地玩耍。
 
@@ -61,4 +65,4 @@
 
 ## 其他
 
-    1. 自己看着修改吧。。。不过早期代码没写好，有点乱。。。只要摸清楚同步方法了就可以随意修改了
+    1. 自己看着修改吧。。。不过早期代码没写好，有点乱，一堆东西全都堆到了Character.wurst里面了。。。只要摸清楚同步方法了就可以随意修改了
