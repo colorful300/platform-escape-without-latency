@@ -30,7 +30,7 @@ hashtable table=InitHashtable()
 ..saveBoolean('Ldrt', KEY_NOTHING, true)    //洛丹伦泥地
 ..saveBoolean('Dlvc', KEY_KILL, true)       //地牢熔岩碎片
 ..saveBoolean('Dlav', KEY_KILL, true)       //地牢火山岩
-..saveBoolean('Xspq', KEY_SAVE, true)       //
+..saveBoolean('Xsqd', KEY_SAVE, true)       //
 ..saveBoolean('Xrtl', KEY_JUMP, true)       //
 ..saveBoolean('Jrtl', KEY_PMUJ, true)       //
 
