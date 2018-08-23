@@ -8,7 +8,7 @@
 
 [内置JAPI版](https://github.com/colorful300/platform-escape-without-delay/raw/master/output.w3x)
 
-YDWELua引擎版懒得搞了，可以自行把map.w3x内的几个触发删掉，然后把imports/callback和imports/wenhao_plugin.tga两个文件删掉，然后把wurst/Base/Universe/Sync.wurst和wurst/Base/Events/KeyboardEvent.wurst里的AbilityId改成Cheat即可。
+[YDWElua引擎版](https://github.com/colorful300/platform-escape-without-delay/raw/use_lua_engine/output.w3x)
 
 # 逃脱大师
 
