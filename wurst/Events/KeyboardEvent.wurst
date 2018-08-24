@@ -35,7 +35,7 @@ public function trigger.registerKeyboardEvent()
     keyboardTriggers[keyboardTriggerTop]=this
 
 init
-    AbilityId("exec-lua:\"KeyboardHook\"")
+    Cheat("exec-lua:\"KeyboardHook\"")
     keyboardHookTrigger=CreateTrigger()
     ..addCondition(Condition(()->begin
         for i=0 to keyboardTriggerTop

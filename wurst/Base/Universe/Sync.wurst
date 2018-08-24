@@ -110,7 +110,7 @@ public class SyncEventDummy
         immediateTrigger.evaluate()
 
 init
-    AbilityId("exec-lua:\"Sync\"")
+    Cheat("exec-lua:\"Sync\"")
     CreateTimer()
     ..start(0.0)->
         GetExpiredTimer().destr()
