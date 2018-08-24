@@ -6,9 +6,7 @@
 
 # 下载
 
-[内置JAPI版](https://github.com/colorful300/platform-escape-without-delay/raw/master/output.w3x)
-
-[YDWElua引擎版](https://github.com/colorful300/platform-escape-without-delay/raw/use_lua_engine/output.w3x)
+[Lua引擎版](https://github.com/colorful300/platform-escape-without-delay/raw/master/output.w3x)
 
 # 逃脱大师
 
